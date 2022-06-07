@@ -1,0 +1,37 @@
+
+/*
+ * Moves the sakila.sql file into template folder for SQLite,
+ * creates the database, and executes the SQL script.
+ */
+if
+   not
+      io.file.exists:/etc/sqlite/templates/sakila.sql
+   .lambda
+
+      // File doesn't exists, hence moving it.
+      io.file.move:/modules/sqlite-sakila/magic.startup/sakila.sql
+         .:/etc/sqlite/templates/
+      log.info:Sakila database SQL script moved into etc folder
+         filename:/etc/sqlite/templates/sakila.sql
+
+// Creates the Sakila database file.
+if
+   not
+      io.file.exists:/data/sakila.db
+   .lambda
+
+      // Creating a default database file to store database in.
+      io.file.save:/data/sakila.db
+         .:
+      log.info:Sakila database file created
+         filename:/data/sakila.db
+
+      // Loads and executes the sakila.sql script.
+      io.file.load:/etc/sqlite/templates/sakila.sql
+      sqlite.connect:sakila
+         sqlite.execute:x:@io.file.load
+      log.info:The sakila database was successfully created
+         filename:/etc/sqlite/templates/sakila.sql
+
+      // Evicting cache item related to SQLite.
+      cache.set:magic.sql.databases.sqlite.generic
